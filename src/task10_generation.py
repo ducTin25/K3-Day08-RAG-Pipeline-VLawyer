@@ -14,6 +14,9 @@ Base URL: "https://openrouter.ai/api/v1", dùng chung interface với OpenAI SDK
 """
 
 import os
+import re
+from pathlib import Path
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -150,7 +153,55 @@ def format_context(chunks: list[dict]) -> str:
 # GENERATION
 # =============================================================================
 
-def generate_with_citation(query: str, top_k: int = TOP_K) -> dict:
+def _format_conversation_history(conversation_history: list[dict] | None) -> str:
+    """Format một phần lịch sử chat để hỗ trợ câu hỏi follow-up."""
+    if conversation_history is None:
+        return ""
+    if not isinstance(conversation_history, list):
+        raise TypeError("conversation_history phải là list hoặc None")
+
+    history_lines = []
+    for message in conversation_history[-6:]:
+        if not isinstance(message, dict):
+            continue
+        role = message.get("role")
+        content = str(message.get("content", "")).strip()
+        if role not in {"user", "assistant"} or not content:
+            continue
+        role_label = "Người dùng" if role == "user" else "Trợ lý"
+        history_lines.append(f"{role_label}: {content}")
+    return "\n".join(history_lines)
+
+
+def _citation_labels(chunks: list[dict], limit: int = 3) -> list[str]:
+    """Tạo citation labels từ metadata thật, không tự sinh tên nguồn."""
+    labels = []
+    seen = set()
+    for index, chunk in enumerate(chunks, 1):
+        metadata = chunk.get("metadata") or {}
+        source = (
+            metadata.get("source")
+            or metadata.get("source_path")
+            or metadata.get("file_name")
+            or f"Source {index}"
+        )
+        source_name = Path(str(source)).name
+        section = metadata.get("section") or metadata.get("header")
+        label = f"{source_name}, {section}" if section else source_name
+        if label in seen:
+            continue
+        seen.add(label)
+        labels.append(f"[{label}]")
+        if len(labels) >= limit:
+            break
+    return labels
+
+
+def generate_with_citation(
+    query: str,
+    top_k: int = TOP_K,
+    conversation_history: list[dict] | None = None,
+) -> dict:
     """
     End-to-end RAG generation có citation.
 
@@ -182,8 +233,17 @@ def generate_with_citation(query: str, top_k: int = TOP_K) -> dict:
     if top_k <= 0:
         raise ValueError("top_k phải lớn hơn 0")
 
-    # Step 1: Retrieve
-    chunks = retrieve(cleaned_query, top_k=top_k)
+    history_text = _format_conversation_history(conversation_history)
+    retrieval_query = cleaned_query
+    if history_text:
+        retrieval_query = (
+            f"Ngữ cảnh hội thoại:\n{history_text}\n\n"
+            f"Câu hỏi hiện tại: {cleaned_query}"
+        )
+
+    # Step 1: Retrieve. Kèm history để làm rõ các câu follow-up như
+    # "còn trường hợp đó thì sao?".
+    chunks = retrieve(retrieval_query, top_k=top_k)
     if not isinstance(chunks, list):
         raise TypeError("retrieve() phải trả về list")
 
@@ -206,7 +266,15 @@ def generate_with_citation(query: str, top_k: int = TOP_K) -> dict:
         }
 
     # Step 4: Build prompt theo format starter repo.
-    user_message = f"Context:\n{context}\n\n---\n\nQuestion: {cleaned_query}"
+    history_section = (
+        f"Conversation history:\n{history_text}\n\n---\n\n"
+        if history_text
+        else ""
+    )
+    user_message = (
+        f"{history_section}Context:\n{context}\n\n---\n\n"
+        f"Question: {cleaned_query}"
+    )
 
     # Step 5: Gọi trực tiếp OpenAI API bằng OPENAI_API_KEY.
     api_key = os.getenv("OPENAI_API_KEY", "").strip()
@@ -228,10 +296,19 @@ def generate_with_citation(query: str, top_k: int = TOP_K) -> dict:
     answer = response.choices[0].message.content
     if not answer or not answer.strip():
         raise RuntimeError("OpenAI không trả về nội dung câu trả lời")
+    answer = answer.strip()
+
+    # Model có thể thỉnh thoảng quên citation dù prompt đã yêu cầu. Chỉ bổ sung
+    # labels lấy từ metadata thật khi câu trả lời có nội dung xác minh được.
+    cannot_verify = "không thể xác minh" in answer.lower()
+    if not cannot_verify and not re.search(r"\[[^\[\]]+\]", answer):
+        labels = _citation_labels(chunks)
+        if labels:
+            answer = f"{answer}\n\nNguồn tham khảo: {'; '.join(labels)}"
 
     # Step 6: Giữ đúng schema Task 10 của repo.
     return {
-        "answer": answer.strip(),
+        "answer": answer,
         "sources": chunks,
         "retrieval_source": chunks[0].get("source", "hybrid"),
     }
