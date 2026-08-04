@@ -41,14 +41,15 @@ def _get_ocr_reader():
 
 def _ocr_pdf(filepath: Path) -> str:
     """Render từng trang PDF thành ảnh rồi OCR — dùng cho PDF scan không có text layer."""
+    import numpy as np
     import pypdfium2 as pdfium
 
     reader = _get_ocr_reader()
     pdf = pdfium.PdfDocument(str(filepath))
     pages_text = []
     for i, page in enumerate(pdf):
-        bitmap = page.render(scale=2.0)
-        image = bitmap.to_pil()
+        bitmap = page.render(scale=1.5)
+        image = np.array(bitmap.to_pil().convert("RGB"))
         print(f"    OCR trang {i + 1}/{len(pdf)}...")
         lines = reader.readtext(image, detail=0, paragraph=True)
         pages_text.append("\n".join(lines))
