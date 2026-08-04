@@ -47,14 +47,13 @@ CHUNK_SIZE = 800
 CHUNK_OVERLAP = 100
 CHUNKING_METHOD = "markdown_header_recursive"
 
-# BGE-M3 tạo vector 1024 chiều, hỗ trợ tiếng Việt và văn bản dài; phù hợp với
-# tài liệu luật trang trọng lẫn câu hỏi đời thường của người lao động trẻ.
-EMBEDDING_MODEL = "BAAI/bge-m3"
-EMBEDDING_DIM = 1024
+# OpenAI embedding cân bằng tốt giữa chất lượng, tốc độ và chi phí.
+EMBEDDING_MODEL = "text-embedding-3-small"
+EMBEDDING_DIM = 1536
 
 # ChromaDB chạy local; cosine phù hợp với normalized dense embeddings.
 VECTOR_STORE = "chromadb"
-COLLECTION_NAME = "vietnam_labor_law_youth_qa"
+COLLECTION_NAME = "vietnam_labor_law_youth_qa_openai"
 
 
 # =============================================================================
@@ -148,17 +147,26 @@ def embed_chunks(chunks: list[dict]) -> list[dict]:
     if not chunks:
         return chunks
 
-    from sentence_transformers import SentenceTransformer
+    from dotenv import load_dotenv
+    from openai import OpenAI
 
-    model = SentenceTransformer(EMBEDDING_MODEL)
-    embeddings = model.encode(
-        [chunk["content"] for chunk in chunks],
-        batch_size=16,
-        show_progress_bar=True,
-        normalize_embeddings=True,
-    )
+    load_dotenv()
+    client = OpenAI()
+    texts = [chunk["content"] for chunk in chunks]
+    embeddings = []
+    batch_size = 100
+    for start in range(0, len(texts), batch_size):
+        batch = texts[start:start + batch_size]
+        response = client.embeddings.create(
+            model=EMBEDDING_MODEL,
+            input=batch,
+            dimensions=EMBEDDING_DIM,
+        )
+        embeddings.extend(item.embedding for item in response.data)
+        print(f"  Embedded {min(start + batch_size, len(texts))}/{len(texts)} chunks")
+
     for chunk, embedding in zip(chunks, embeddings):
-        chunk["embedding"] = embedding.tolist()
+        chunk["embedding"] = embedding
     return chunks
 
 
