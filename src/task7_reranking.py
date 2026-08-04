@@ -128,24 +128,47 @@ def rerank_rrf(
     """
     if top_k <= 0:
         return []
+    if k < 0:
+        raise ValueError("k must be greater than or equal to 0")
 
-    rrf_scores: dict[str, float] = {}
-    item_map: dict[str, dict] = {}
+    rrf_scores: dict[tuple, float] = {}
+    item_map: dict[tuple, dict] = {}
+
+    def document_key(item: dict) -> tuple:
+        """Identify a chunk consistently across rankers.
+
+        Task 4 provides ``source_path`` and ``chunk_index``. Falling back to
+        content keeps the function compatible with simple/dummy candidates.
+        """
+        metadata = item.get("metadata") or {}
+        source_path = metadata.get("source_path")
+        chunk_index = metadata.get("chunk_index")
+        if source_path is not None and chunk_index is not None:
+            return ("chunk", str(source_path), int(chunk_index))
+        return ("content", str(item.get("content", "")))
 
     for ranked_list in ranked_lists:
+        seen_in_ranker: set[tuple] = set()
         for rank, item in enumerate(ranked_list, start=1):
             content = item.get("content", "")
             if not content:
                 continue
 
-            rrf_scores[content] = rrf_scores.get(content, 0.0) + 1.0 / (k + rank)
-            item_map.setdefault(content, item)
+            key = document_key(item)
+            if key in seen_in_ranker:
+                continue
+            seen_in_ranker.add(key)
 
-    sorted_items = sorted(rrf_scores.items(), key=lambda x: x[1], reverse=True)
+            rrf_scores[key] = rrf_scores.get(key, 0.0) + 1.0 / (k + rank)
+            item_map.setdefault(key, item)
+
+    # Python's stable sort preserves first-seen order when RRF scores tie,
+    # keeping output deterministic without favoring either ranker by raw score.
+    sorted_items = sorted(rrf_scores.items(), key=lambda pair: pair[1], reverse=True)
 
     results = []
-    for content, score in sorted_items[:top_k]:
-        item = item_map[content].copy()
+    for key, score in sorted_items[:top_k]:
+        item = item_map[key].copy()
         item["score"] = score
         item["source"] = item.get("source", "hybrid")
         results.append(item)
@@ -181,7 +204,13 @@ def rerank(
         # Cần query_embedding - embed query trước
         raise NotImplementedError("Call rerank_mmr with query_embedding")
     elif method == "rrf":
-        # RRF cần nhiều ranked lists - gọi riêng
+        # Task 9 may pass an already fused list. Do not run single-list RRF a
+        # second time because that would overwrite the two-ranker RRF scores.
+        if any(item.get("source") == "hybrid" for item in candidates):
+            return [item.copy() for item in candidates[:top_k]]
+
+        # Compatibility path for the public rerank() interface and basic tests.
+        # True hybrid fusion should call rerank_rrf([dense, sparse]) directly.
         return rerank_rrf([candidates], top_k=top_k)
     else:
         raise ValueError(f"Unknown rerank method: {method}")
