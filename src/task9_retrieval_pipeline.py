@@ -103,7 +103,62 @@ def retrieve(
     #         return fallback
     #
     # return final_results[:top_k]
-    raise NotImplementedError("Implement retrieve")
+    if not isinstance(query, str):
+        raise TypeError("query phai la chuoi")
+    cleaned_query = query.strip()
+    if not cleaned_query:
+        raise ValueError("query khong duoc rong")
+    if isinstance(top_k, bool) or not isinstance(top_k, int):
+        raise TypeError("top_k phai la so nguyen")
+    if top_k <= 0:
+        raise ValueError("top_k phai lon hon 0")
+
+    search_k = max(top_k * 2, top_k)
+
+    try:
+        dense_results = semantic_search(cleaned_query, top_k=search_k)
+    except Exception:
+        dense_results = []
+
+    try:
+        sparse_results = lexical_search(cleaned_query, top_k=search_k)
+    except Exception:
+        sparse_results = []
+
+    ranked_lists = [results for results in (dense_results, sparse_results) if results]
+    if ranked_lists:
+        merged = rerank_rrf(ranked_lists, top_k=search_k)
+    else:
+        merged = []
+
+    for item in merged:
+        item["source"] = "hybrid"
+        item.setdefault("metadata", {})
+
+    if use_reranking and merged:
+        final_results = rerank(cleaned_query, merged, top_k=top_k, method=RERANK_METHOD)
+    else:
+        final_results = merged[:top_k]
+
+    for item in final_results:
+        item["source"] = item.get("source", "hybrid")
+        item.setdefault("metadata", {})
+
+    # Use original dense cosine score for fallback, never the fused RRF score.
+    best_dense_score = dense_results[0]["score"] if dense_results else 0.0
+    if best_dense_score < score_threshold:
+        try:
+            fallback_results = pageindex_search(cleaned_query, top_k=top_k)
+        except Exception:
+            fallback_results = []
+
+        if fallback_results:
+            for item in fallback_results:
+                item["source"] = "pageindex"
+                item.setdefault("metadata", {})
+            return fallback_results[:top_k]
+
+    return final_results[:top_k]
 
 
 if __name__ == "__main__":
