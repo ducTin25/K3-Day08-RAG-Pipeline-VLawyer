@@ -69,6 +69,25 @@ if "messages" not in st.session_state:
 if "pending_query" not in st.session_state:
     st.session_state.pending_query = None
 
+
+def run_rag_query(query: str, top_k: int) -> tuple[str, list[dict]]:
+    """Run Task 10 generation and normalize the response for the chat UI."""
+    from src.task10_generation import generate_with_citation
+
+    response = generate_with_citation(query, top_k=top_k)
+    if not isinstance(response, dict):
+        raise TypeError("generate_with_citation() must return a dict")
+
+    answer = str(response.get("answer") or "").strip()
+    if not answer:
+        answer = "Khong co cau tra loi tu pipeline."
+
+    sources = response.get("sources") or []
+    if not isinstance(sources, list):
+        sources = []
+
+    return answer, sources
+
 # =============================================================================
 # MAIN CHAT AREA
 # =============================================================================
@@ -111,18 +130,7 @@ if query:
     with st.chat_message("assistant"):
         with st.spinner("Đang tìm kiếm tài liệu và tổng hợp câu trả lời..."):
             try:
-                # TODO (Học viên): Tích hợp hàm sinh câu trả lời từ Task 10
-                # Ví dụ:
-                # from src.task10_generation import generate_with_citation
-                # response = generate_with_citation(query, top_k=top_k)
-                # answer = response["answer"]
-                # sources = response.get("sources", [])
-
-                # Tạm thời mockup để test UI:
-                from src.task10_generation import generate_with_citation
-                response = generate_with_citation(query, top_k=top_k)
-                answer = response.get("answer", "Chưa thể trả lời.")
-                sources = response.get("sources", [])
+                answer, sources = run_rag_query(query, top_k=top_k)
 
             except NotImplementedError:
                 answer = "⚠️ **Task 10 chưa được implement.** Hãy hoàn thành `src/task10_generation.py` để kết nối pipeline vào UI!"
