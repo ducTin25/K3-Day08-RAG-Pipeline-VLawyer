@@ -79,10 +79,10 @@ Xem code mẫu (DeepEval/RAGAS/TruLens) chi tiết trong `README.md` gốc mục
 
 | Thành viên | MSSV | Nhiệm vụ | Trạng thái |
 |-----------|------|----------|------------|
-| | | | |
-| | | | |
-| | | | |
-| | | | |
+| Nguyễn Đức Tín | 2A202601185 | **Team Leader & RAG Architect** | Đã phân công |
+| Trần Anh Thư | 2A202601611 | **Evaluation & QA Engineer** | Đã phân công |
+| Dương Văn Vũ | 2A202601663 | **Data & Retrieval Specialist** | Đã phân công |
+| Cao Nhật Minh | 2A202601721 | **Frontend & Chatbot Developer** | Đã phân công |
 
 ---
 
