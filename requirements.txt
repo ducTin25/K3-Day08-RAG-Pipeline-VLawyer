@@ -4,7 +4,9 @@ requests>=2.31.0
 numpy>=1.24.0
 
 # Task 2 - Crawling
-crawl4ai>=0.3.0
+crawl4ai==0.3.746
+# Keep LiteLLM on the OpenAI 1.x-compatible line used by RAGAS/LangChain below.
+litellm==1.53.1
 
 # Task 3 - Document conversion
 markitdown[pdf]>=0.1.0
@@ -20,7 +22,7 @@ rank-bm25>=0.2.2
 scikit-learn>=1.3.0
 
 # Task 8 - PageIndex
-pageindex>=0.1.0
+pageindex==0.1.9
 
 # Task 10 - Generation
 openai>=1.30.0
@@ -31,7 +33,7 @@ streamlit>=1.35.0
 # Group project - Evaluation
 ragas==0.1.21
 datasets>=2.14.0
-langchain-openai>=0.1.0
+langchain-openai==0.1.25
 
 # Testing (dung de cham diem bai ca nhan)
 pytest>=7.0.0
