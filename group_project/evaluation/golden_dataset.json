@@ -1,17 +1,97 @@
 [
   {
-    "question": "Học phí hàng năm của chương trình Business tại RMIT Vietnam là bao nhiêu?",
-    "expected_answer": "Khoảng 375.840.000 VND mỗi năm (tùy chương trình cụ thể).",
-    "expected_context": "Trang Tuition Fees, mục Undergraduate Programs"
+    "question": "Hợp đồng lao động là gì theo Bộ luật Lao động 2019?",
+    "expected_answer": "Hợp đồng lao động là sự thỏa thuận giữa người lao động và người sử dụng lao động về việc làm có trả công, tiền lương, điều kiện lao động, quyền và nghĩa vụ của mỗi bên trong quan hệ lao động.",
+    "expected_context": "Luat-lao-dong.md, Điều 13"
   },
   {
-    "question": "Học phí được thanh toán theo hình thức nào?",
-    "expected_answer": "Thanh toán theo từng học kỳ, tính theo từng môn học đã đăng ký.",
-    "expected_context": "Trang Tuition Fees, mục Payment Structure"
+    "question": "Bộ luật Lao động 2019 quy định có mấy loại hợp đồng lao động?",
+    "expected_answer": "Hợp đồng lao động phải được giao kết theo một trong hai loại: hợp đồng lao động không xác định thời hạn và hợp đồng lao động xác định thời hạn (không quá 36 tháng).",
+    "expected_context": "Luat-lao-dong.md, Điều 20"
   },
   {
-    "question": "Trường có cung cấp ký túc xá trong khuôn viên không?",
-    "expected_answer": "Không — trường không cung cấp chỗ ở trong khuôn viên, nhưng có đội ngũ hỗ trợ sinh viên tìm chỗ ở gần trường.",
-    "expected_context": "Trang Accommodation Services"
+    "question": "Thời gian thử việc tối đa đối với công việc cần trình độ chuyên môn từ cao đẳng trở lên là bao lâu?",
+    "expected_answer": "Không quá 60 ngày.",
+    "expected_context": "Luat-lao-dong.md, Điều 25"
+  },
+  {
+    "question": "Tiền lương thử việc tối thiểu bằng bao nhiêu phần trăm mức lương chính thức của công việc đó?",
+    "expected_answer": "Ít nhất phải bằng 85% mức lương của công việc đó.",
+    "expected_context": "Luat-lao-dong.md, Điều 26"
+  },
+  {
+    "question": "Người lao động phải báo trước bao nhiêu ngày khi đơn phương chấm dứt hợp đồng lao động không xác định thời hạn?",
+    "expected_answer": "Ít nhất 45 ngày.",
+    "expected_context": "Luat-lao-dong.md, Điều 35"
+  },
+  {
+    "question": "Trợ cấp thôi việc được tính như thế nào cho người lao động đã làm việc thường xuyên từ đủ 12 tháng trở lên?",
+    "expected_answer": "Mỗi năm làm việc được trợ cấp một nửa tháng tiền lương, tính theo tiền lương bình quân của 6 tháng liền kề trước khi thôi việc.",
+    "expected_context": "Luat-lao-dong.md, Điều 46"
+  },
+  {
+    "question": "Mức lương tối thiểu được định nghĩa như thế nào trong Bộ luật Lao động?",
+    "expected_answer": "Mức lương tối thiểu là mức lương thấp nhất được trả cho người lao động làm công việc giản đơn nhất trong điều kiện lao động bình thường, nhằm bảo đảm mức sống tối thiểu của người lao động và gia đình họ.",
+    "expected_context": "Luat-lao-dong.md, Điều 91"
+  },
+  {
+    "question": "Người lao động làm thêm giờ vào ngày nghỉ hằng tuần được trả lương ít nhất bằng bao nhiêu phần trăm?",
+    "expected_answer": "Ít nhất bằng 200% tiền lương của ngày làm việc bình thường.",
+    "expected_context": "Luat-lao-dong.md, Điều 98"
+  },
+  {
+    "question": "Người lao động làm việc vào ban đêm được trả thêm ít nhất bao nhiêu phần trăm tiền lương?",
+    "expected_answer": "Được trả thêm ít nhất bằng 30% tiền lương tính theo đơn giá tiền lương hoặc tiền lương thực trả của ngày làm việc bình thường.",
+    "expected_context": "Luat-lao-dong.md, Điều 98"
+  },
+  {
+    "question": "Thời giờ làm việc bình thường tối đa là bao nhiêu giờ mỗi ngày và mỗi tuần?",
+    "expected_answer": "Không quá 8 giờ trong 1 ngày và không quá 48 giờ trong 1 tuần.",
+    "expected_context": "Luat-lao-dong.md, Điều 105"
+  },
+  {
+    "question": "Giờ làm việc ban đêm được tính từ mấy giờ đến mấy giờ?",
+    "expected_answer": "Từ 22 giờ đến 6 giờ sáng ngày hôm sau.",
+    "expected_context": "Luat-lao-dong.md, Điều 106"
+  },
+  {
+    "question": "Số giờ làm thêm tối đa trong một năm theo quy định chung là bao nhiêu?",
+    "expected_answer": "Không quá 200 giờ trong 1 năm, trừ một số ngành nghề đặc thù được làm thêm không quá 300 giờ trong 1 năm.",
+    "expected_context": "Luat-lao-dong.md, Điều 107"
+  },
+  {
+    "question": "Người lao động làm việc trong điều kiện bình thường được nghỉ hằng năm bao nhiêu ngày nếu làm đủ 12 tháng?",
+    "expected_answer": "12 ngày làm việc.",
+    "expected_context": "Luat-lao-dong.md, Điều 113"
+  },
+  {
+    "question": "Khi ngừng việc do lỗi của người sử dụng lao động, người lao động được trả lương như thế nào?",
+    "expected_answer": "Người lao động được trả đủ tiền lương theo hợp đồng lao động.",
+    "expected_context": "Luat-lao-dong.md, Điều 99"
+  },
+  {
+    "question": "Mức khấu trừ tiền lương hằng tháng tối đa là bao nhiêu phần trăm?",
+    "expected_answer": "Không được quá 30% tiền lương thực trả hằng tháng của người lao động sau khi trích nộp bảo hiểm xã hội, bảo hiểm y tế, bảo hiểm thất nghiệp, thuế thu nhập cá nhân.",
+    "expected_context": "Luat-lao-dong.md, Điều 102"
+  },
+  {
+    "question": "Bảo hiểm xã hội bắt buộc gồm những chế độ nào?",
+    "expected_answer": "Gồm các chế độ: ốm đau, thai sản, hưu trí, tử tuất, và bảo hiểm tai nạn lao động, bệnh nghề nghiệp.",
+    "expected_context": "Luat_Bao_hiem_xa_hoi41-2024-QH15.md, Điều 4"
+  },
+  {
+    "question": "Công đoàn Việt Nam được tổ chức và hoạt động theo nguyên tắc nào?",
+    "expected_answer": "Công đoàn Việt Nam là tổ chức chính trị - xã hội của giai cấp công nhân và người lao động, được thành lập trên cơ sở tự nguyện, tổ chức và hoạt động theo nguyên tắc tập trung dân chủ.",
+    "expected_context": "Luat_Cong_doan_50-2024-QH15.md, Điều 1 và Điều 7"
+  },
+  {
+    "question": "Người nước ngoài kết hôn với người Việt Nam và sinh sống tại Việt Nam có cần xin giấy phép lao động không?",
+    "expected_answer": "Không thuộc diện cấp giấy phép lao động theo khoản 8 Điều 154 Bộ luật Lao động 2019, nhưng phải thông báo với cơ quan có thẩm quyền cấp giấy xác nhận không thuộc diện cấp giấy phép lao động trước ít nhất 3 ngày làm việc.",
+    "expected_context": "article_04.md (Trường hợp người nước ngoài không thuộc diện cấp giấy phép lao động)"
+  },
+  {
+    "question": "Trong thời gian thử việc, các bên có quyền hủy bỏ hợp đồng thử việc mà không cần báo trước không?",
+    "expected_answer": "Có. Trong thời gian thử việc, mỗi bên có quyền hủy bỏ hợp đồng thử việc hoặc hợp đồng lao động đã giao kết mà không cần báo trước và không phải bồi thường.",
+    "expected_context": "Luat-lao-dong.md, Điều 27"
   }
 ]
