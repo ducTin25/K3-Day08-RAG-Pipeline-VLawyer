@@ -37,23 +37,24 @@ TOP_P = 0.9
 # Chọn 0.3 vì: RAG cần factual, ít sáng tạo
 TEMPERATURE = 0.3
 
-# TODO: Chọn LLM model (OpenRouter model ID)
-LLM_MODEL = "openai/gpt-4o-mini"  # hoặc model ":free" nếu chưa có credit
+# Giữ model chi phí thấp theo starter repo, nhưng gọi trực tiếp OpenAI thay vì
+# dùng model ID dạng provider/model của OpenRouter. Có thể override trong .env.
+LLM_MODEL = os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini")
 
 
 # =============================================================================
 # SYSTEM PROMPT
 # =============================================================================
 
-SYSTEM_PROMPT = """Bạn là trợ lý trả lời câu hỏi về dịch vụ và chính sách đại học
-(học phí, học bổng, ký túc xá, thư viện, đăng ký học phần).
+SYSTEM_PROMPT = """Bạn là trợ lý hỏi đáp về pháp luật lao động Việt Nam.
 
 Quy tắc bắt buộc:
 1. Chỉ sử dụng thông tin từ context được cung cấp — KHÔNG bịa đặt
-2. Mỗi khẳng định phải có trích dẫn ngay sau, ví dụ: [Tuition Fees, 2026]
+2. Mỗi khẳng định pháp lý phải có trích dẫn nguồn ngay sau, ví dụ: [Bộ luật Lao động 2019, Điều 91]
 3. Nếu context không đủ thông tin → trả lời: "Tôi không thể xác minh thông tin này từ nguồn hiện có"
 4. Trả lời bằng tiếng Việt, có cấu trúc rõ ràng theo đoạn văn
-5. Không suy luận hay mở rộng ngoài những gì được nêu trong context"""
+5. Không suy luận hay mở rộng ngoài những gì được nêu trong context
+6. Khi các nguồn mâu thuẫn, nêu rõ mâu thuẫn và không tự chọn kết luận"""
 
 
 # =============================================================================
@@ -77,15 +78,16 @@ def reorder_for_llm(chunks: list[dict]) -> list[dict]:
     Returns:
         List reordered để maximize LLM attention.
     """
-    # TODO: Implement reordering
-    #
-    # if len(chunks) <= 2:
-    #     return chunks
-    #
-    # front = chunks[::2]   # index 0, 2, 4 -> đặt ở đầu
-    # back = chunks[1::2]   # index 1, 3    -> đặt ở cuối (reversed)
-    # return front + back[::-1]
-    raise NotImplementedError("Implement reorder_for_llm")
+    if not isinstance(chunks, list):
+        raise TypeError("chunks phải là list")
+
+    # Luôn trả list mới để không làm thay đổi danh sách retrieval đầu vào.
+    if len(chunks) <= 2:
+        return list(chunks)
+
+    front = chunks[::2]   # index 0, 2, 4 -> đầu và phần giữa
+    back = chunks[1::2]   # index 1, 3    -> cuối theo thứ tự đảo
+    return front + back[::-1]
 
 
 # =============================================================================
@@ -103,18 +105,45 @@ def format_context(chunks: list[dict]) -> str:
     Returns:
         Formatted context string.
     """
-    # TODO: Implement context formatting
-    #
-    # context_parts = []
-    # for i, chunk in enumerate(chunks, 1):
-    #     source = chunk.get("metadata", {}).get("source", f"Source {i}")
-    #     doc_type = chunk.get("metadata", {}).get("type", "unknown")
-    #     context_parts.append(
-    #         f"[Document {i} | Source: {source} | Type: {doc_type}]\n"
-    #         f"{chunk['content']}\n"
-    #     )
-    # return "\n---\n".join(context_parts)
-    raise NotImplementedError("Implement format_context")
+    if not isinstance(chunks, list):
+        raise TypeError("chunks phải là list")
+
+    context_parts = []
+    for index, chunk in enumerate(chunks, 1):
+        if not isinstance(chunk, dict):
+            raise TypeError(f"chunks[{index - 1}] phải là dict")
+
+        content = str(chunk.get("content", "")).strip()
+        if not content:
+            continue
+
+        metadata = chunk.get("metadata") or {}
+        if not isinstance(metadata, dict):
+            metadata = {}
+
+        source = (
+            metadata.get("source")
+            or metadata.get("source_path")
+            or metadata.get("file_name")
+            or f"Source {index}"
+        )
+        doc_type = metadata.get("type") or metadata.get("document_type") or "unknown"
+        section = metadata.get("section") or metadata.get("header")
+        page = metadata.get("page_index")
+
+        labels = [
+            f"Document {index}",
+            f"Source: {source}",
+            f"Type: {doc_type}",
+        ]
+        if section:
+            labels.append(f"Section: {section}")
+        if page is not None:
+            labels.append(f"Page: {page}")
+
+        context_parts.append(f"[{' | '.join(labels)}]\n{content}")
+
+    return "\n\n---\n\n".join(context_parts)
 
 
 # =============================================================================
@@ -143,51 +172,76 @@ def generate_with_citation(query: str, top_k: int = TOP_K) -> dict:
             'retrieval_source': str  # 'hybrid' hoặc 'pageindex'
         }
     """
-    # TODO: Implement generation pipeline
-    #
-    # # Step 1: Retrieve
-    # chunks = retrieve(query, top_k=top_k)
-    #
-    # # Step 2: Reorder
-    # reordered = reorder_for_llm(chunks)
-    #
-    # # Step 3: Format context
-    # context = format_context(reordered)
-    #
-    # # Step 4: Build prompt
-    # user_message = f"""Context:\n{context}\n\n---\n\nQuestion: {query}"""
-    #
-    # # Step 5: Call LLM (OpenRouter — OpenAI-compatible API)
-    # from openai import OpenAI
-    # api_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY")
-    # client = OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
-    #
-    # response = client.chat.completions.create(
-    #     model=LLM_MODEL,
-    #     messages=[
-    #         {"role": "system", "content": SYSTEM_PROMPT},
-    #         {"role": "user", "content": user_message}
-    #     ],
-    #     temperature=TEMPERATURE,
-    #     top_p=TOP_P,
-    # )
-    #
-    # answer = response.choices[0].message.content
-    #
-    # # Step 6: Return
-    # return {
-    #     "answer": answer,
-    #     "sources": chunks,
-    #     "retrieval_source": chunks[0].get("source", "hybrid") if chunks else "none"
-    # }
-    raise NotImplementedError("Implement generate_with_citation")
+    if not isinstance(query, str):
+        raise TypeError("query phải là chuỗi")
+    cleaned_query = query.strip()
+    if not cleaned_query:
+        raise ValueError("query không được rỗng")
+    if isinstance(top_k, bool) or not isinstance(top_k, int):
+        raise TypeError("top_k phải là số nguyên")
+    if top_k <= 0:
+        raise ValueError("top_k phải lớn hơn 0")
+
+    # Step 1: Retrieve
+    chunks = retrieve(cleaned_query, top_k=top_k)
+    if not isinstance(chunks, list):
+        raise TypeError("retrieve() phải trả về list")
+
+    # Không gọi LLM khi retrieval không có evidence.
+    if not chunks:
+        return {
+            "answer": "Tôi không thể xác minh thông tin này từ nguồn hiện có",
+            "sources": [],
+            "retrieval_source": "none",
+        }
+
+    # Step 2-3: Reorder và format context
+    reordered = reorder_for_llm(chunks)
+    context = format_context(reordered)
+    if not context:
+        return {
+            "answer": "Tôi không thể xác minh thông tin này từ nguồn hiện có",
+            "sources": chunks,
+            "retrieval_source": chunks[0].get("source", "hybrid"),
+        }
+
+    # Step 4: Build prompt theo format starter repo.
+    user_message = f"Context:\n{context}\n\n---\n\nQuestion: {cleaned_query}"
+
+    # Step 5: Gọi trực tiếp OpenAI API bằng OPENAI_API_KEY.
+    api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    if not api_key or "PASTE" in api_key or api_key.endswith("..."):
+        raise RuntimeError("Chưa cấu hình OPENAI_API_KEY trong .env")
+
+    from openai import OpenAI
+
+    client = OpenAI(api_key=api_key)
+    response = client.chat.completions.create(
+        model=LLM_MODEL,
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_message},
+        ],
+        temperature=TEMPERATURE,
+        top_p=TOP_P,
+    )
+    answer = response.choices[0].message.content
+    if not answer or not answer.strip():
+        raise RuntimeError("OpenAI không trả về nội dung câu trả lời")
+
+    # Step 6: Giữ đúng schema Task 10 của repo.
+    return {
+        "answer": answer.strip(),
+        "sources": chunks,
+        "retrieval_source": chunks[0].get("source", "hybrid"),
+    }
 
 
 if __name__ == "__main__":
     test_queries = [
-        "Học phí tại RMIT Vietnam là bao nhiêu?",
-        "Làm sao để đặt phòng học nhóm ở thư viện?",
-        "Sinh viên quốc tế có những học bổng nào?",
+        "Mức lương tối thiểu được quy định như thế nào?",
+        "Người lao động được nghỉ hằng năm bao nhiêu ngày?",
+        "Điều kiện đơn phương chấm dứt hợp đồng lao động là gì?",
     ]
 
     for q in test_queries:
