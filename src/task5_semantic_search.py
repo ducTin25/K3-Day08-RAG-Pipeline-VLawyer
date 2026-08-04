@@ -17,6 +17,7 @@ from .task4_chunking_indexing import (
     CHROMA_DIR,
     CHUNKING_METHOD,
     COLLECTION_NAME,
+    EMBEDDING_DIM,
     EMBEDDING_MODEL,
 )
 
@@ -44,16 +45,43 @@ def _validate_inputs(query: str, top_k: int) -> str:
     return cleaned_query
 
 
-@lru_cache(maxsize=1)
-def _get_embedding_model() -> Any:
-    """Tai embedding model mot lan duy nhat trong moi process."""
+def _load_openai_api_key() -> str:
+    """Đọc OpenAI API key từ .env hoặc system environment."""
     try:
-        from sentence_transformers import SentenceTransformer
+        from dotenv import load_dotenv
+
+        load_dotenv()
+    except ImportError:
+        pass
+
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise RuntimeError("Chưa cấu hình OPENAI_API_KEY cho Task 5")
+    return api_key
+
+
+@lru_cache(maxsize=1)
+def _get_openai_client() -> Any:
+    """Khởi tạo OpenAI client một lần trong mỗi process."""
+    try:
+        from openai import OpenAI
     except ImportError as exc:
         raise RuntimeError(
-            "Chua cai sentence-transformers. Hay cai requirements.txt truoc khi chay Task 5."
+            "Chưa cài openai package. Hãy cài requirements.txt trước khi chạy Task 5."
         ) from exc
-    return SentenceTransformer(EMBEDDING_MODEL)
+    return OpenAI(api_key=_load_openai_api_key())
+
+
+def _embed_text(text: str) -> list[float]:
+    """Embed query bằng đúng model và số chiều đã dùng để index ở Task 4."""
+    response = _get_openai_client().embeddings.create(
+        model=EMBEDDING_MODEL,
+        input=[text],
+        dimensions=EMBEDDING_DIM,
+    )
+    if not response.data or not response.data[0].embedding:
+        raise RuntimeError("OpenAI trả về query embedding rỗng")
+    return _to_vector(response.data[0].embedding)
 
 
 def _validate_collection_config(collection: Any) -> None:
@@ -109,27 +137,7 @@ def _get_collection() -> Any:
 
 def _generate_hypothetical_document(query: str) -> str:
     """Sinh hypothetical document bằng OpenAI để dùng cho HyDE."""
-    try:
-        from dotenv import load_dotenv
-
-        load_dotenv()
-    except ImportError:
-        # .env la tien ich; API key van co the duoc truyen qua system environment.
-        pass
-
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise RuntimeError("Chưa cấu hình OPENAI_API_KEY cho HyDE")
-
-    try:
-        from openai import OpenAI
-    except ImportError as exc:
-        raise RuntimeError(
-            "Chua cai openai package; khong the su dung HyDE"
-        ) from exc
-
-    client = OpenAI(api_key=api_key)
-    response = client.chat.completions.create(
+    response = _get_openai_client().chat.completions.create(
         model=HYDE_MODEL,
         messages=[
             {"role": "system", "content": HYDE_SYSTEM_PROMPT},
@@ -193,10 +201,7 @@ def semantic_search(
 
     collection = _get_collection()
     result_count = min(top_k, collection.count())
-    model = _get_embedding_model()
-    query_vector = _to_vector(
-        model.encode(search_text, normalize_embeddings=True)
-    )
+    query_vector = _embed_text(search_text)
 
     raw_results = collection.query(
         query_embeddings=[query_vector],
